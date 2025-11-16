@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "blink:block/blink_portal"
+    }
+  }
+}

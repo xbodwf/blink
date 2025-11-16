@@ -1,0 +1,23 @@
+pluginManagement {
+    repositories {
+        // 阿里云Maven镜像
+        maven { url "https://maven.aliyun.com/repository/public/" }
+        maven { url "https://maven.aliyun.com/repository/gradle-plugin/" }
+        
+        // 腾讯云Maven镜像
+        maven { url "https://mirrors.cloud.tencent.com/nexus/repository/maven-public/" }
+        
+        // Minecraft相关仓库
+        maven { url "https://maven.fabricmc.net/" }
+        maven { url "https://maven.architectury.dev/" }
+        maven { url "https://maven.minecraftforge.net/" }
+        
+        gradlePluginPortal()
+    }
+}
+
+include("common")
+include("fabric")
+include("forge")
+
+rootProject.name = "blink"

@@ -1,0 +1,35 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+#issueTrackerURL = ""
+license = "GPL-3.0"
+
+[[mods]]
+modId = "blink"
+version = "${version}"
+displayName = "Blink"
+authors = "xbodw"
+description = '''
+A mod that adds a filler tool to quickly fill regions with blocks!
+'''
+#logoFile = ""
+
+[[dependencies.blink]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.blink]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.blink]]
+modId = "architectury"
+mandatory = true
+versionRange = "[9.1.12,)"
+ordering = "AFTER"
+side = "BOTH"

@@ -1,0 +1,13 @@
+{
+  "item.blink.filler": "Filler",
+  "item.blink.compressed_firework_1": "1x Compressed Firework",
+  "item.blink.compressed_firework_2": "2x Compressed Firework",
+  "item.blink.compressed_firework_3": "3x Compressed Firework",
+  "item.blink.compressed_firework_4": "4x Compressed Firework",
+  "item.blink.compressed_firework_5": "5x Compressed Firework",
+  "item.blink.compressed_firework_6": "6x Compressed Firework",
+  "item.blink.compressed_firework_7": "7x Compressed Firework",
+  "item.blink.compressed_firework_8": "8x Compressed Firework",
+  "item.blink.compressed_firework_9": "9x Compressed Firework",
+  "itemGroup.blink.blink_tab": "Blink"
+}
