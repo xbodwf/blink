@@ -1,0 +1,54 @@
+plugins {
+    id "net.neoforged.gradle.userdev"
+}
+
+base {
+    archivesName = "${archives_base_name}-neoforge${minecraft_version}"
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+runs {
+    configureEach {
+        workingDirectory project.layout.projectDirectory.dir("run").dir(name)
+        modSource project.sourceSets.main
+    }
+    client {}
+    server {}
+}
+
+dependencies {
+    implementation "net.neoforged:neoforge:${neoforge_version}"
+    implementation project(":common")
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir project(":common").sourceSets.main.java
+        }
+        resources {
+            srcDir project(":common").sourceSets.main.resources
+            exclude "architectury.common.json"
+            exclude "blink.accesswidener"
+        }
+    }
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("META-INF/neoforge.mods.toml") {
+        expand "version": project.version
+    }
+}
+
+jar {
+    from project(":common").sourceSets.main.output
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = 21
+}

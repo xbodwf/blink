@@ -3,8 +3,8 @@ package com.xbodw.blink.item;
 import com.xbodw.blink.Blink;
 import com.xbodw.blink.gui.FillerMenu;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -25,13 +25,9 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import java.util.List;
+import java.util.Optional;
 
 public class FillerItem extends Item {
-    private static final String POS1_KEY = "pos1";
-    private static final String POS2_KEY = "pos2";
-    private static final String FILL_BLOCK_KEY = "fillBlock";
-    private static final String FILL_MODE_KEY = "fillMode";
-    private static final String STATE_KEY = "state";
     
     public FillerItem(Properties properties) {
         super(properties);
@@ -44,8 +40,6 @@ public class FillerItem extends Item {
         if (level.isClientSide) {
             return InteractionResultHolder.success(stack);
         }
-        
-        CompoundTag nbt = stack.getOrCreateTag();
         
         if (player.isShiftKeyDown()) {
             // Shift+右键直接打开GUI面板
@@ -92,25 +86,29 @@ public class FillerItem extends Item {
     }
     
     private InteractionResult handlePositionSelection(ItemStack stack, Player player, BlockPos pos) {
-        CompoundTag nbt = stack.getOrCreateTag();
-        FillerState currentState = FillerState.fromString(nbt.getString(STATE_KEY));
+        FillerDataComponent.FillerData data = stack.getOrDefault(FillerDataComponent.FILLER_DATA, FillerDataComponent.empty());
+        FillerState currentState = FillerState.fromString(data.state());
         
         switch (currentState) {
             case SELECTING_POS1:
-                nbt.putLong(POS1_KEY, pos.asLong());
-                nbt.putString(STATE_KEY, FillerState.SELECTING_POS2.name());
+                stack.set(FillerDataComponent.FILLER_DATA, new FillerDataComponent.FillerData(
+                    Optional.of(pos.asLong()), data.pos2(), data.fillBlock(), data.fillMode(),
+                    FillerState.SELECTING_POS2.name()
+                ));
                 player.sendSystemMessage(Component.literal("§a位置1已设置: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()));
                 player.sendSystemMessage(Component.literal("§7现在选择位置2..."));
                 break;
                 
             case SELECTING_POS2:
-                nbt.putLong(POS2_KEY, pos.asLong());
-                nbt.putString(STATE_KEY, FillerState.READY_TO_FILL.name());
+                stack.set(FillerDataComponent.FILLER_DATA, new FillerDataComponent.FillerData(
+                    data.pos1(), Optional.of(pos.asLong()), data.fillBlock(), data.fillMode(),
+                    FillerState.READY_TO_FILL.name()
+                ));
                 player.sendSystemMessage(Component.literal("§a位置2已设置: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()));
                 
                 // 显示区域信息（保留原有功能）
-                if (nbt.contains(POS1_KEY)) {
-                    BlockPos pos1 = BlockPos.of(nbt.getLong(POS1_KEY));
+                if (data.pos1().isPresent()) {
+                    BlockPos pos1 = BlockPos.of(data.pos1().get());
                     int volume = Math.abs(pos.getX() - pos1.getX() + 1) * 
                                Math.abs(pos.getY() - pos1.getY() + 1) * 
                                Math.abs(pos.getZ() - pos1.getZ() + 1);
@@ -121,15 +119,20 @@ public class FillerItem extends Item {
                 
             case READY_TO_FILL:
                 // 执行填充
-                if (!nbt.contains(FILL_BLOCK_KEY)) {
+                if (data.fillBlock().isEmpty()) {
                     player.sendSystemMessage(Component.literal("§c请先设置填充方块！(Shift+右键打开设置面板)"));
                     return InteractionResult.FAIL;
                 }
                 
-                BlockPos pos1 = BlockPos.of(nbt.getLong(POS1_KEY));
-                BlockPos pos2 = BlockPos.of(nbt.getLong(POS2_KEY));
-                String blockId = nbt.getString(FILL_BLOCK_KEY);
-                FillMode fillMode = FillMode.fromString(nbt.getString(FILL_MODE_KEY));
+                if (data.pos1().isEmpty() || data.pos2().isEmpty()) {
+                    player.sendSystemMessage(Component.literal("§c请先选择两个位置！"));
+                    return InteractionResult.FAIL;
+                }
+                
+                BlockPos p1 = BlockPos.of(data.pos1().get());
+                BlockPos p2 = BlockPos.of(data.pos2().get());
+                String blockId = data.fillBlock().get();
+                FillMode fillMode = FillMode.fromString(data.fillMode());
                 
                 // 获取填充方块
                 Block fillBlock = getBlockFromId(blockId);
@@ -140,7 +143,7 @@ public class FillerItem extends Item {
                 
                 // 执行填充，确保不会报错
                 try {
-                    int result = fillRegion(player.level(), player, pos1, pos2, fillBlock, fillMode);
+                    int result = fillRegion(player.level(), player, p1, p2, fillBlock, fillMode);
                     if (result >= 0) {
                         if (result > 0) {
                             player.sendSystemMessage(Component.literal("§a成功处理了 " + result + " 个方块！"));
@@ -153,9 +156,7 @@ public class FillerItem extends Item {
                 }
                 
                 // 重置状态
-                nbt.putString(STATE_KEY, FillerState.SELECTING_POS1.name());
-                nbt.remove(POS1_KEY);
-                nbt.remove(POS2_KEY);
+                stack.set(FillerDataComponent.FILLER_DATA, FillerDataComponent.empty());
                 player.sendSystemMessage(Component.literal("§7状态已重置，可以重新选择位置。"));
                 break;
         }
@@ -269,16 +270,16 @@ public class FillerItem extends Item {
     }
     
     @Override
-    public void appendHoverText(ItemStack stack, Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         // 更新操作说明
         tooltip.add(Component.literal("§7右键: 选择位置/执行填充"));
         tooltip.add(Component.literal("§7Shift+右键: 打开设置面板"));
         
-        CompoundTag nbt = stack.getTag();
+        FillerDataComponent.FillerData data = stack.get(FillerDataComponent.FILLER_DATA);
         FillerState currentState = FillerState.SELECTING_POS1;
         
-        if (nbt != null) {
-            currentState = FillerState.fromString(nbt.getString(STATE_KEY));
+        if (data != null) {
+            currentState = FillerState.fromString(data.state());
             
             // 显示当前状态
             tooltip.add(Component.literal(""));
@@ -287,42 +288,39 @@ public class FillerItem extends Item {
             
             // 保留原有的位置和方块信息显示
             tooltip.add(Component.literal(""));
-            if (nbt.contains(POS1_KEY)) {
-                BlockPos pos1 = BlockPos.of(nbt.getLong(POS1_KEY));
-                tooltip.add(Component.literal("§a位置1: " + pos1.getX() + ", " + pos1.getY() + ", " + pos1.getZ()));
-            }
-            if (nbt.contains(POS2_KEY)) {
-                BlockPos pos2 = BlockPos.of(nbt.getLong(POS2_KEY));
-                tooltip.add(Component.literal("§a位置2: " + pos2.getX() + ", " + pos2.getY() + ", " + pos2.getZ()));
+            data.pos1().ifPresent(pos1 -> {
+                BlockPos p1 = BlockPos.of(pos1);
+                tooltip.add(Component.literal("§a位置1: " + p1.getX() + ", " + p1.getY() + ", " + p1.getZ()));
+            });
+            data.pos2().ifPresent(pos2 -> {
+                BlockPos p2 = BlockPos.of(pos2);
+                tooltip.add(Component.literal("§a位置2: " + p2.getX() + ", " + p2.getY() + ", " + p2.getZ()));
                 
                 // 如果两个位置都设置了，显示区域大小
-                if (nbt.contains(POS1_KEY)) {
-                    BlockPos pos1 = BlockPos.of(nbt.getLong(POS1_KEY));
-                    int volume = Math.abs(pos2.getX() - pos1.getX() + 1) * 
-                               Math.abs(pos2.getY() - pos1.getY() + 1) * 
-                               Math.abs(pos2.getZ() - pos1.getZ() + 1);
+                data.pos1().ifPresent(pos1 -> {
+                    BlockPos p1 = BlockPos.of(pos1);
+                    int volume = Math.abs(p2.getX() - p1.getX() + 1) * 
+                               Math.abs(p2.getY() - p1.getY() + 1) * 
+                               Math.abs(p2.getZ() - p1.getZ() + 1);
                     tooltip.add(Component.literal("§b区域大小: " + volume + " 个方块"));
-                }
-            }
-            if (nbt.contains(FILL_BLOCK_KEY)) {
-                String blockId = nbt.getString(FILL_BLOCK_KEY);
+                });
+            });
+            data.fillBlock().ifPresent(blockId -> {
                 // 尝试获取方块的友好名称
                 Block block = getBlockFromId(blockId);
                 String displayName = block != null ? block.getName().getString() : blockId;
                 tooltip.add(Component.literal("§b填充方块: " + displayName));
-            }
-            if (nbt.contains(FILL_MODE_KEY)) {
-                FillMode fillMode = FillMode.fromString(nbt.getString(FILL_MODE_KEY));
-                tooltip.add(Component.literal("§d填充模式: " + fillMode.getDisplayName()));
-                tooltip.add(Component.literal("§7" + fillMode.getDescription()));
-            }
+            });
+            FillMode fillMode = FillMode.fromString(data.fillMode());
+            tooltip.add(Component.literal("§d填充模式: " + fillMode.getDisplayName()));
+            tooltip.add(Component.literal("§7" + fillMode.getDescription()));
         } else {
-            // 如果没有NBT数据，显示基本状态
+            // 如果没有数据，显示基本状态
             tooltip.add(Component.literal(""));
             tooltip.add(Component.literal("§7当前状态: §e" + currentState.getDisplayName()));
             tooltip.add(Component.literal("§7" + currentState.getDescription()));
         }
         
-        super.appendHoverText(stack, level, tooltip, flag);
+        super.appendHoverText(stack, context, tooltip, flag);
     }
 }

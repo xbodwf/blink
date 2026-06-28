@@ -171,13 +171,12 @@ public class FillerRenderer {
             dz /= length;
         }
         
-        vertexConsumer.vertex(poseStack.last().pose(), x1, y1, z1)
-                .color(red, green, blue, alpha)
-                .normal(poseStack.last().normal(), dx, dy, dz)
-                .endVertex();
-        vertexConsumer.vertex(poseStack.last().pose(), x2, y2, z2)
-                .color(red, green, blue, alpha)
-                .normal(poseStack.last().normal(), dx, dy, dz)
-                .endVertex();
+        var pose = poseStack.last().pose();
+        vertexConsumer.addVertex(pose, x1, y1, z1)
+                .setColor((int)(red * 255), (int)(green * 255), (int)(blue * 255), (int)(alpha * 255))
+                .setNormal(dx, dy, dz);
+        vertexConsumer.addVertex(pose, x2, y2, z2)
+                .setColor((int)(red * 255), (int)(green * 255), (int)(blue * 255), (int)(alpha * 255))
+                .setNormal(dx, dy, dz);
     }
 }

@@ -1,6 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[47,)"
-#issueTrackerURL = ""
+loaderVersion = "[4,)"
 license = "GPL-3.0"
 
 [[mods]]
@@ -11,25 +10,17 @@ authors = "xbodw"
 description = '''
 A mod that adds a filler tool to quickly fill regions with blocks!
 '''
-#logoFile = ""
 
 [[dependencies.blink]]
-modId = "forge"
+modId = "neoforge"
 mandatory = true
-versionRange = "[47,)"
+versionRange = "[21,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.blink]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[1.20.1,)"
+versionRange = "[1.21.1,)"
 ordering = "NONE"
-side = "BOTH"
-
-[[dependencies.blink]]
-modId = "architectury"
-mandatory = true
-versionRange = "[9.1.12,)"
-ordering = "AFTER"
 side = "BOTH"

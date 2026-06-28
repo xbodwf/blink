@@ -1,8 +1,8 @@
 package com.xbodw.blink.gui;
 
 import com.xbodw.blink.Blink;
+import com.xbodw.blink.item.FillerDataComponent;
 import com.xbodw.blink.item.FillMode;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -10,6 +10,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+
+import java.util.Optional;
 
 public class FillerMenu extends AbstractContainerMenu {
     private final Container container;
@@ -20,7 +22,7 @@ public class FillerMenu extends AbstractContainerMenu {
     }
     
     public FillerMenu(int containerId, Inventory playerInventory, Container container) {
-        super(Blink.FILLER_MENU_TYPE.get(), containerId);
+        super(Blink.FILLER_MENU_TYPE, containerId);
         this.container = container;
         this.player = playerInventory.player;
         
@@ -54,12 +56,18 @@ public class FillerMenu extends AbstractContainerMenu {
         ItemStack fillerStack = getFillerStack();
         if (fillerStack != null) {
             ItemStack blockStack = this.container.getItem(0);
-            CompoundTag nbt = fillerStack.getOrCreateTag();
+            FillerDataComponent.FillerData data = fillerStack.getOrDefault(FillerDataComponent.FILLER_DATA, FillerDataComponent.empty());
             
             if (!blockStack.isEmpty()) {
-                nbt.putString("fillBlock", blockStack.getItem().getDescriptionId());
+                fillerStack.set(FillerDataComponent.FILLER_DATA, new FillerDataComponent.FillerData(
+                    data.pos1(), data.pos2(), Optional.of(blockStack.getItem().getDescriptionId()),
+                    data.fillMode(), data.state()
+                ));
             } else {
-                nbt.remove("fillBlock");
+                fillerStack.set(FillerDataComponent.FILLER_DATA, new FillerDataComponent.FillerData(
+                    data.pos1(), data.pos2(), Optional.empty(),
+                    data.fillMode(), data.state()
+                ));
             }
         }
     }
@@ -67,9 +75,8 @@ public class FillerMenu extends AbstractContainerMenu {
     private void loadFillerBlock() {
         ItemStack fillerStack = getFillerStack();
         if (fillerStack != null) {
-            CompoundTag nbt = fillerStack.getTag();
-            if (nbt != null && nbt.contains("fillBlock")) {
-                String blockId = nbt.getString("fillBlock");
+            FillerDataComponent.FillerData data = fillerStack.get(FillerDataComponent.FILLER_DATA);
+            if (data != null && data.fillBlock().isPresent()) {
                 // 这里可以根据blockId创建对应的ItemStack并放入槽位
                 // 但为了简化，我们暂时不实现这个功能
             }
@@ -80,9 +87,9 @@ public class FillerMenu extends AbstractContainerMenu {
         ItemStack mainHand = player.getMainHandItem();
         ItemStack offHand = player.getOffhandItem();
         
-        if (mainHand.getItem() == Blink.FILLER_ITEM.get()) {
+        if (mainHand.getItem() == Blink.FILLER_ITEM) {
             return mainHand;
-        } else if (offHand.getItem() == Blink.FILLER_ITEM.get()) {
+        } else if (offHand.getItem() == Blink.FILLER_ITEM) {
             return offHand;
         }
         return null;
@@ -91,17 +98,19 @@ public class FillerMenu extends AbstractContainerMenu {
     public void setFillMode(FillMode mode) {
         ItemStack fillerStack = getFillerStack();
         if (fillerStack != null) {
-            CompoundTag nbt = fillerStack.getOrCreateTag();
-            nbt.putString("fillMode", mode.name());
+            FillerDataComponent.FillerData data = fillerStack.getOrDefault(FillerDataComponent.FILLER_DATA, FillerDataComponent.empty());
+            fillerStack.set(FillerDataComponent.FILLER_DATA, new FillerDataComponent.FillerData(
+                data.pos1(), data.pos2(), data.fillBlock(), mode.name(), data.state()
+            ));
         }
     }
     
     public FillMode getFillMode() {
         ItemStack fillerStack = getFillerStack();
         if (fillerStack != null) {
-            CompoundTag nbt = fillerStack.getTag();
-            if (nbt != null && nbt.contains("fillMode")) {
-                return FillMode.fromString(nbt.getString("fillMode"));
+            FillerDataComponent.FillerData data = fillerStack.get(FillerDataComponent.FILLER_DATA);
+            if (data != null) {
+                return FillMode.fromString(data.fillMode());
             }
         }
         return FillMode.FILL; // 默认模式

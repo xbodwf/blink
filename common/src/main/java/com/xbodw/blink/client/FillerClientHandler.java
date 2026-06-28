@@ -1,10 +1,10 @@
 package com.xbodw.blink.client;
 
 import com.xbodw.blink.Blink;
+import com.xbodw.blink.item.FillerDataComponent;
 import com.xbodw.blink.item.FillerState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
@@ -34,9 +34,9 @@ public class FillerClientHandler {
         ItemStack offHand = player.getOffhandItem();
         
         ItemStack fillerStack = null;
-        if (mainHand.getItem() == Blink.FILLER_ITEM.get()) {
+        if (mainHand.getItem() == Blink.FILLER_ITEM) {
             fillerStack = mainHand;
-        } else if (offHand.getItem() == Blink.FILLER_ITEM.get()) {
+        } else if (offHand.getItem() == Blink.FILLER_ITEM) {
             fillerStack = offHand;
         }
         
@@ -53,21 +53,12 @@ public class FillerClientHandler {
     }
     
     private static void updateFillerState(ItemStack fillerStack) {
-        CompoundTag nbt = fillerStack.getTag();
-        if (nbt != null) {
-            currentState = FillerState.fromString(nbt.getString("state"));
+        FillerDataComponent.FillerData data = fillerStack.get(FillerDataComponent.FILLER_DATA);
+        if (data != null) {
+            currentState = FillerState.fromString(data.state());
             
-            if (nbt.contains("pos1")) {
-                pos1 = BlockPos.of(nbt.getLong("pos1"));
-            } else {
-                pos1 = null;
-            }
-            
-            if (nbt.contains("pos2")) {
-                pos2 = BlockPos.of(nbt.getLong("pos2"));
-            } else {
-                pos2 = null;
-            }
+            pos1 = data.pos1().map(BlockPos::of).orElse(null);
+            pos2 = data.pos2().map(BlockPos::of).orElse(null);
         }
     }
     
