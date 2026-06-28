@@ -187,6 +187,8 @@ public class FillerItem extends Item {
         return null;
     }
     
+    private static final int MAX_FILL_BLOCKS = 10000;
+
     private int fillRegion(Level level, Player player, BlockPos pos1, BlockPos pos2, Block fillBlock, FillMode fillMode) {
         int minX = Math.min(pos1.getX(), pos2.getX());
         int maxX = Math.max(pos1.getX(), pos2.getX());
@@ -194,28 +196,33 @@ public class FillerItem extends Item {
         int maxY = Math.max(pos1.getY(), pos2.getY());
         int minZ = Math.min(pos1.getZ(), pos2.getZ());
         int maxZ = Math.max(pos1.getZ(), pos2.getZ());
-        
+
+        int totalBlocks = (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
+        if (totalBlocks > MAX_FILL_BLOCKS) {
+            player.sendSystemMessage(Component.literal("§c区域太大！单次最多填充 " + MAX_FILL_BLOCKS + " 个方块，当前区域有 " + totalBlocks + " 个。"));
+            return 0;
+        }
+
         int processed = 0;
         BlockState fillState = fillBlock.defaultBlockState();
-        int totalBlocks = (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
         int currentBlock = 0;
-        
-        // 如果没有设置填充模式，默认使用创建模式
+
         if (fillMode == null) {
             fillMode = FillMode.FILL;
         }
-        
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
+
+        int progressInterval = Math.max(totalBlocks / 10, 100);
+
+        for (int x = minX; x <= maxX && processed < MAX_FILL_BLOCKS; x++) {
+            for (int y = minY; y <= maxY && processed < MAX_FILL_BLOCKS; y++) {
+                for (int z = minZ; z <= maxZ && processed < MAX_FILL_BLOCKS; z++) {
                     BlockPos currentPos = new BlockPos(x, y, z);
                     BlockState currentState = level.getBlockState(currentPos);
                     currentBlock++;
-                    
-                    // 显示进度（每100个方块显示一次）
-                    if (currentBlock % 100 == 0 || currentBlock == totalBlocks) {
-                        int progress = (currentBlock * 100) / totalBlocks;
-                        player.sendSystemMessage(Component.literal("§6填充进度: " + progress + "% (" + currentBlock + "/" + totalBlocks + ")"));
+
+                    if (currentBlock % progressInterval == 0 || currentBlock >= totalBlocks) {
+                        int progress = Math.min((currentBlock * 100) / totalBlocks, 100);
+                        player.sendSystemMessage(Component.literal("§6填充进度: " + progress + "% (" + processed + "/" + totalBlocks + ")"));
                     }
                     
                     boolean shouldProcess = false;

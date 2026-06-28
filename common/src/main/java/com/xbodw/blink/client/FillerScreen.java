@@ -14,14 +14,15 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
 public class FillerScreen extends AbstractContainerScreen<FillerMenu> {
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/crafting_table.png");
+    private static final ResourceLocation CONTAINER_TEXTURE = ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
+    private static final int CONTAINER_ROWS = 1;
     private CycleButton<FillMode> modeButton;
     private FillMode currentMode = FillMode.FILL;
     
     public FillerScreen(FillerMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
         this.imageWidth = 176;
-        this.imageHeight = 166;
+        this.imageHeight = 114 + CONTAINER_ROWS * 18;
         // 从菜单获取当前模式
         this.currentMode = menu.getFillMode();
     }
@@ -30,12 +31,14 @@ public class FillerScreen extends AbstractContainerScreen<FillerMenu> {
     protected void init() {
         super.init();
         
+        int centerX = this.leftPos + this.imageWidth / 2;
+        
         // 创建填充模式选择按钮
         this.modeButton = CycleButton.<FillMode>builder(mode -> Component.literal(mode.getDisplayName()))
             .withValues(FillMode.values())
             .withInitialValue(currentMode)
             .withTooltip(mode -> net.minecraft.client.gui.components.Tooltip.create(Component.literal(mode.getDescription())))
-            .create(this.leftPos + 8, this.topPos + 60, 160, 20, Component.literal("填充模式"), (button, mode) -> {
+            .create(centerX - 80, this.topPos + 30, 160, 20, Component.literal("填充模式"), (button, mode) -> {
                 this.currentMode = mode;
                 // 发送网络包到服务端更新模式
                 NetworkHandler.sendToServer(new FillerModePacket(mode));
@@ -62,22 +65,24 @@ public class FillerScreen extends AbstractContainerScreen<FillerMenu> {
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
+        
+        // 渲染容器背景
+        guiGraphics.blit(CONTAINER_TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, CONTAINER_ROWS * 18 + 17);
+        guiGraphics.blit(CONTAINER_TEXTURE, this.leftPos, this.topPos + CONTAINER_ROWS * 18 + 17, 0, 126, this.imageWidth, 96);
     }
     
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        int centerX = this.imageWidth / 2;
+        
         // 渲染标题
         guiGraphics.drawString(this.font, this.title, 8, 6, 4210752, false);
         
         // 渲染物品槽标签
-        guiGraphics.drawString(this.font, Component.literal("填充方块:"), 8, 25, 4210752, false);
-        
-        // 渲染填充模式标签
-        guiGraphics.drawString(this.font, Component.literal("填充模式:"), 8, 50, 4210752, false);
+        guiGraphics.drawString(this.font, Component.literal("填充方块:"), centerX - 40, 20, 4210752, false);
         
         // 渲染背包标签
-        guiGraphics.drawString(this.font, this.playerInventoryTitle, 8, this.imageHeight - 96 + 2, 4210752, false);
+        guiGraphics.drawString(this.font, this.playerInventoryTitle, 8, 18 + 1 * 18 + 4, 4210752, false);
     }
     
     @Override

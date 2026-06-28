@@ -26,12 +26,13 @@ public class FillerMenu extends AbstractContainerMenu {
         this.container = container;
         this.player = playerInventory.player;
         
+        int invStartY = 17 + 1 * 18 + 14;
+        
         // 添加填充方块槽位
-        this.addSlot(new Slot(container, 0, 80, 35) {
+        this.addSlot(new Slot(container, 0, 80, 18) {
             @Override
             public void setChanged() {
                 super.setChanged();
-                // 当槽位内容改变时，更新填充器的NBT数据
                 updateFillerBlock();
             }
         });
@@ -39,13 +40,13 @@ public class FillerMenu extends AbstractContainerMenu {
         // 添加玩家背包槽位
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 9; ++j) {
-                this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 8 + j * 18, 84 + i * 18));
+                this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 8 + j * 18, invStartY + i * 18));
             }
         }
         
         // 添加玩家快捷栏槽位
         for (int k = 0; k < 9; ++k) {
-            this.addSlot(new Slot(playerInventory, k, 8 + k * 18, 142));
+            this.addSlot(new Slot(playerInventory, k, 8 + k * 18, invStartY + 3 * 18 + 4));
         }
         
         // 初始化时从填充器读取当前设置的方块
