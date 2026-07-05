@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CCC",
+    "CCC",
+    "CCC"
+  ],
+  "key": {
+    "C": { "item": "minecraft:wind_charge" }
+  },
+  "result": { "id": "blink:compressed_wind_charge_1", "count": 1 }
+}
+

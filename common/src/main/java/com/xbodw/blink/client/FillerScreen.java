@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.xbodw.blink.gui.FillerMenu;
 import com.xbodw.blink.item.FillMode;
 import com.xbodw.blink.network.FillerModePacket;
+import com.xbodw.blink.network.FillerPickBlockPacket;
 import com.xbodw.blink.network.NetworkHandler;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -38,7 +39,7 @@ public class FillerScreen extends AbstractContainerScreen<FillerMenu> {
             .withValues(FillMode.values())
             .withInitialValue(currentMode)
             .withTooltip(mode -> net.minecraft.client.gui.components.Tooltip.create(Component.literal(mode.getDescription())))
-            .create(centerX - 80, this.topPos + 30, 160, 20, Component.literal("填充模式"), (button, mode) -> {
+            .create(centerX - 80, this.topPos + 30, 75, 20, Component.literal("填充模式"), (button, mode) -> {
                 this.currentMode = mode;
                 // 发送网络包到服务端更新模式
                 NetworkHandler.sendToServer(new FillerModePacket(mode));
@@ -47,6 +48,16 @@ public class FillerScreen extends AbstractContainerScreen<FillerMenu> {
             });
         
         this.addRenderableWidget(modeButton);
+
+        // 从世界拾取方块按钮
+        Button pickButton = Button.builder(Component.literal("世界拾取"), button -> {
+            NetworkHandler.sendPickBlockToServer(new FillerPickBlockPacket());
+            this.onClose();
+        })
+            .bounds(centerX, this.topPos + 30, 75, 20)
+            .tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("关闭GUI后，准星对准的方块将被设为填充材料")))
+            .build();
+        this.addRenderableWidget(pickButton);
         
         // 添加关闭按钮（右上角叉）
         Button closeButton = Button.builder(Component.literal("×"), button -> this.onClose())

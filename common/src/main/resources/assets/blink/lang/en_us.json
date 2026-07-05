@@ -9,5 +9,14 @@
   "item.blink.compressed_firework_7": "7x Compressed Firework",
   "item.blink.compressed_firework_8": "8x Compressed Firework",
   "item.blink.compressed_firework_9": "9x Compressed Firework",
+  "item.blink.compressed_wind_charge_1": "1x Compressed Wind Charge",
+  "item.blink.compressed_wind_charge_2": "2x Compressed Wind Charge",
+  "item.blink.compressed_wind_charge_3": "3x Compressed Wind Charge",
+  "item.blink.compressed_wind_charge_4": "4x Compressed Wind Charge",
+  "item.blink.compressed_wind_charge_5": "5x Compressed Wind Charge",
+  "item.blink.compressed_wind_charge_6": "6x Compressed Wind Charge",
+  "item.blink.compressed_wind_charge_7": "7x Compressed Wind Charge",
+  "item.blink.compressed_wind_charge_8": "8x Compressed Wind Charge",
+  "item.blink.compressed_wind_charge_9": "9x Compressed Wind Charge",
   "itemGroup.blink.blink_tab": "Blink"
 }

@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "FFF",
+    "FWF",
+    "FFF"
+  ],
+  "key": {
+    "F": { "item": "blink:compressed_firework_8" },
+    "W": { "item": "blink:compressed_wind_charge_9" }
+  },
+  "result": { "id": "blink:compressed_firework_9", "count": 1 }
+}
+

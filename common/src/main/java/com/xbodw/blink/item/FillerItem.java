@@ -3,6 +3,8 @@ package com.xbodw.blink.item;
 import com.xbodw.blink.Blink;
 import com.xbodw.blink.gui.FillerMenu;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.server.level.ServerPlayer;
@@ -21,18 +23,173 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class FillerItem extends Item {
-    
+
+    private static final int MAX_FILL_BLOCKS = 10000;
+    private static final int BATCH_SIZE = 200;
+    private static final Map<UUID, FillTask> PENDING_FILLS = new ConcurrentHashMap<>();
+
     public FillerItem(Properties properties) {
         super(properties);
     }
-    
+
+    private static class FillTask {
+        final Player player;
+        final Level level;
+        final int minX, minY, minZ;
+        final int sizeX, sizeY, sizeZ;
+        final BlockState fillState;
+        final FillMode fillMode;
+        final int totalBlocks;
+        final boolean resetState;
+        int currentIndex;
+        int processed;
+        int lastProgressPercent;
+
+        FillTask(Player player, Level level, int minX, int minY, int minZ,
+                 int sizeX, int sizeY, int sizeZ, BlockState fillState, FillMode fillMode,
+                 int totalBlocks, boolean resetState) {
+            this.player = player;
+            this.level = level;
+            this.minX = minX; this.minY = minY; this.minZ = minZ;
+            this.sizeX = sizeX; this.sizeY = sizeY; this.sizeZ = sizeZ;
+            this.fillState = fillState;
+            this.fillMode = fillMode;
+            this.totalBlocks = totalBlocks;
+            this.resetState = resetState;
+            this.currentIndex = 0;
+            this.processed = 0;
+            this.lastProgressPercent = -1;
+        }
+    }
+
+    public static void processPendingFills() {
+        for (Map.Entry<UUID, FillTask> entry : PENDING_FILLS.entrySet()) {
+            FillTask task = entry.getValue();
+            if (task.player.isRemoved() || !task.player.isAlive()) {
+                PENDING_FILLS.remove(entry.getKey());
+                continue;
+            }
+            processBatch(task);
+            if (task.currentIndex >= task.totalBlocks) {
+                PENDING_FILLS.remove(entry.getKey());
+            }
+        }
+    }
+
+    private static void processBatch(FillTask task) {
+        Player player = task.player;
+        Level level = task.level;
+        BlockState fillState = task.fillState;
+        FillMode fillMode = task.fillMode;
+
+        int count = 0;
+        while (task.currentIndex < task.totalBlocks && count < BATCH_SIZE) {
+            int idx = task.currentIndex;
+            int localX = idx / (task.sizeY * task.sizeZ);
+            int remainder = idx % (task.sizeY * task.sizeZ);
+            int localY = remainder / task.sizeZ;
+            int localZ = remainder % task.sizeZ;
+            int x = task.minX + localX;
+            int y = task.minY + localY;
+            int z = task.minZ + localZ;
+
+            BlockPos currentPos = new BlockPos(x, y, z);
+            BlockState currentState = level.getBlockState(currentPos);
+            boolean shouldProcess = false;
+
+            switch (fillMode) {
+                case FILL:
+                    shouldProcess = currentState.isAir() || currentState.canBeReplaced();
+                    break;
+                case REPLACE:
+                    shouldProcess = true;
+                    break;
+                case REMOVE:
+                    shouldProcess = currentState.getBlock() == fillState.getBlock();
+                    break;
+            }
+
+            if (shouldProcess) {
+                try {
+                    if (!player.isCreative() && fillMode != FillMode.REMOVE) {
+                        boolean hasItem = false;
+                        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+                            if (player.getInventory().getItem(i).getItem() == fillState.getBlock().asItem()) {
+                                hasItem = true;
+                                break;
+                            }
+                        }
+                        if (!hasItem) {
+                            task.currentIndex++;
+                            count++;
+                            continue;
+                        }
+                        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+                            ItemStack slotStack = player.getInventory().getItem(i);
+                            if (slotStack.getItem() == fillState.getBlock().asItem()) {
+                                slotStack.shrink(1);
+                                break;
+                            }
+                        }
+                    }
+
+                    if (fillMode == FillMode.REMOVE) {
+                        level.setBlock(currentPos, Blocks.AIR.defaultBlockState(), 2);
+                    } else {
+                        level.setBlock(currentPos, fillState, 2);
+                    }
+                    task.processed++;
+                } catch (Exception e) {
+                    // ignore single block errors
+                }
+            }
+
+            task.currentIndex++;
+            count++;
+        }
+
+        int currentPercent = (task.currentIndex * 100) / task.totalBlocks;
+        if (currentPercent >= task.lastProgressPercent + 10 || task.currentIndex >= task.totalBlocks) {
+            player.sendSystemMessage(Component.literal("§6填充进度: " + Math.min(currentPercent, 100) + "% (" + task.processed + "/" + task.totalBlocks + ")"));
+            task.lastProgressPercent = currentPercent;
+        }
+
+        if (task.currentIndex >= task.totalBlocks) {
+            if (task.processed > 0) {
+                player.sendSystemMessage(Component.literal("§a成功处理了 " + task.processed + " 个方块！"));
+            } else {
+                player.sendSystemMessage(Component.literal("§e没有需要处理的方块。"));
+            }
+            if (task.resetState && player instanceof ServerPlayer) {
+                ItemStack fillerStack = getHeldFiller(player);
+                if (fillerStack != null) {
+                    fillerStack.set(FillerDataComponent.FILLER_DATA, FillerDataComponent.empty());
+                }
+            }
+            player.sendSystemMessage(Component.literal("§7状态已重置，可以重新选择位置。"));
+        }
+    }
+
+    private static ItemStack getHeldFiller(Player player) {
+        if (player.getMainHandItem().getItem() instanceof FillerItem) {
+            return player.getMainHandItem();
+        } else if (player.getOffhandItem().getItem() instanceof FillerItem) {
+            return player.getOffhandItem();
+        }
+        return null;
+    }
+
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
@@ -84,7 +241,7 @@ public class FillerItem extends Item {
         
         return null;
     }
-    
+
     private InteractionResult handlePositionSelection(ItemStack stack, Player player, BlockPos pos) {
         FillerDataComponent.FillerData data = stack.getOrDefault(FillerDataComponent.FILLER_DATA, FillerDataComponent.empty());
         FillerState currentState = FillerState.fromString(data.state());
@@ -118,46 +275,60 @@ public class FillerItem extends Item {
                 break;
                 
             case READY_TO_FILL:
-                // 执行填充
                 if (data.fillBlock().isEmpty()) {
                     player.sendSystemMessage(Component.literal("§c请先设置填充方块！(Shift+右键打开设置面板)"));
                     return InteractionResult.FAIL;
                 }
-                
+
                 if (data.pos1().isEmpty() || data.pos2().isEmpty()) {
                     player.sendSystemMessage(Component.literal("§c请先选择两个位置！"));
                     return InteractionResult.FAIL;
                 }
-                
+
+                if (PENDING_FILLS.containsKey(player.getUUID())) {
+                    player.sendSystemMessage(Component.literal("§c已有填充任务在执行中，请等待完成！"));
+                    return InteractionResult.FAIL;
+                }
+
                 BlockPos p1 = BlockPos.of(data.pos1().get());
                 BlockPos p2 = BlockPos.of(data.pos2().get());
-                String blockId = data.fillBlock().get();
+                String blockStateStr = data.fillBlock().get();
                 FillMode fillMode = FillMode.fromString(data.fillMode());
-                
-                // 获取填充方块
-                Block fillBlock = getBlockFromId(blockId);
-                if (fillBlock == null) {
+
+                BlockState fillState = parseBlockState(blockStateStr);
+                if (fillState == null) {
                     player.sendSystemMessage(Component.literal("§c无效的填充方块！"));
                     return InteractionResult.FAIL;
                 }
-                
-                // 执行填充，确保不会报错
-                try {
-                    int result = fillRegion(player.level(), player, p1, p2, fillBlock, fillMode);
-                    if (result >= 0) {
-                        if (result > 0) {
-                            player.sendSystemMessage(Component.literal("§a成功处理了 " + result + " 个方块！"));
-                        } else {
-                            player.sendSystemMessage(Component.literal("§e没有需要处理的方块。"));
-                        }
-                    }
-                } catch (Exception e) {
-                    player.sendSystemMessage(Component.literal("§e填充完成，但可能遇到了一些问题。"));
+
+                int minX = Math.min(p1.getX(), p2.getX());
+                int maxX = Math.max(p1.getX(), p2.getX());
+                int minY = Math.min(p1.getY(), p2.getY());
+                int maxY = Math.max(p1.getY(), p2.getY());
+                int minZ = Math.min(p1.getZ(), p2.getZ());
+                int maxZ = Math.max(p1.getZ(), p2.getZ());
+
+                int sizeX = maxX - minX + 1;
+                int sizeY = maxY - minY + 1;
+                int sizeZ = maxZ - minZ + 1;
+                int totalBlocks = sizeX * sizeY * sizeZ;
+
+                if (totalBlocks > MAX_FILL_BLOCKS) {
+                    player.sendSystemMessage(Component.literal("§c区域太大！单次最多填充 " + MAX_FILL_BLOCKS + " 个方块，当前区域有 " + totalBlocks + " 个。"));
+                    return InteractionResult.FAIL;
                 }
-                
-                // 重置状态
-                stack.set(FillerDataComponent.FILLER_DATA, FillerDataComponent.empty());
-                player.sendSystemMessage(Component.literal("§7状态已重置，可以重新选择位置。"));
+
+                if (totalBlocks <= BATCH_SIZE) {
+                    FillTask task = new FillTask(player, player.level(), minX, minY, minZ,
+                            sizeX, sizeY, sizeZ, fillState, fillMode, totalBlocks, true);
+                    processBatch(task);
+                } else {
+                    player.sendSystemMessage(Component.literal("§6填充中... 共 " + totalBlocks + " 个方块"));
+                    FillTask task = new FillTask(player, player.level(), minX, minY, minZ,
+                            sizeX, sizeY, sizeZ, fillState, fillMode, totalBlocks, true);
+                    PENDING_FILLS.put(player.getUUID(), task);
+                    processBatch(task);
+                }
                 break;
         }
         
@@ -165,120 +336,139 @@ public class FillerItem extends Item {
     }
     
     private void openFillerGui(ServerPlayer player, ItemStack stack) {
+        FillerDataComponent.FillerData data = stack.getOrDefault(FillerDataComponent.FILLER_DATA, FillerDataComponent.empty());
+        net.minecraft.world.SimpleContainer container = new net.minecraft.world.SimpleContainer(1);
+
+        if (data.fillBlock().isPresent()) {
+            Block block = getBlockFromStateString(data.fillBlock().get());
+            if (block != null) {
+                container.setItem(0, new ItemStack(block.asItem()));
+            }
+        }
+
+        final net.minecraft.world.SimpleContainer finalContainer = container;
         player.openMenu(new MenuProvider() {
             @Override
             public Component getDisplayName() {
                 return Component.literal("填充器设置");
             }
-            
+
             @Override
             public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
-                return new FillerMenu(containerId, playerInventory);
+                return new FillerMenu(containerId, playerInventory, finalContainer);
             }
         });
     }
     
-    private Block getBlockFromId(String blockId) {
-        for (Block block : net.minecraft.core.registries.BuiltInRegistries.BLOCK) {
-            if (block.getDescriptionId().equals(blockId)) {
-                return block;
-            }
-        }
-        return null;
+    /**
+     * Converts an ItemStack to a block state string format: "namespace:block[prop1=val1,prop2=val2]"
+     */
+    public static String getBlockStateString(ItemStack stack) {
+        if (stack.isEmpty()) return "";
+        Block block = Block.byItem(stack.getItem());
+        if (block == Blocks.AIR) return "";
+        ResourceLocation id = block.builtInRegistryHolder().key().location();
+        BlockState state = block.defaultBlockState();
+        return blockStateToString(id, state);
     }
-    
-    private static final int MAX_FILL_BLOCKS = 10000;
 
-    private int fillRegion(Level level, Player player, BlockPos pos1, BlockPos pos2, Block fillBlock, FillMode fillMode) {
-        int minX = Math.min(pos1.getX(), pos2.getX());
-        int maxX = Math.max(pos1.getX(), pos2.getX());
-        int minY = Math.min(pos1.getY(), pos2.getY());
-        int maxY = Math.max(pos1.getY(), pos2.getY());
-        int minZ = Math.min(pos1.getZ(), pos2.getZ());
-        int maxZ = Math.max(pos1.getZ(), pos2.getZ());
+    public static String blockStateToString(ResourceLocation id, BlockState state) {
+        StringBuilder sb = new StringBuilder(id.toString());
+        Map<Property<?>, Comparable<?>> values = state.getValues();
+        if (!values.isEmpty()) {
+            sb.append('[');
+            boolean first = true;
+            for (Map.Entry<Property<?>, Comparable<?>> entry : values.entrySet()) {
+                if (!first) sb.append(',');
+                sb.append(entry.getKey().getName());
+                sb.append('=');
+                sb.append(entry.getValue().toString());
+                first = false;
+            }
+            sb.append(']');
+        }
+        return sb.toString();
+    }
 
-        int totalBlocks = (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
-        if (totalBlocks > MAX_FILL_BLOCKS) {
-            player.sendSystemMessage(Component.literal("§c区域太大！单次最多填充 " + MAX_FILL_BLOCKS + " 个方块，当前区域有 " + totalBlocks + " 个。"));
-            return 0;
+    /**
+     * Parses a block state string like "minecraft:stone_slab[type=top,waterlogged=false]"
+     * and returns the full BlockState, or null if invalid.
+     */
+    public static BlockState parseBlockState(String stateString) {
+        if (stateString == null || stateString.isEmpty()) return null;
+
+        String blockPart;
+        String propsPart = null;
+
+        int bracketStart = stateString.indexOf('[');
+        if (bracketStart >= 0) {
+            blockPart = stateString.substring(0, bracketStart);
+            propsPart = stateString.substring(bracketStart + 1);
+            if (propsPart.endsWith("]")) {
+                propsPart = propsPart.substring(0, propsPart.length() - 1);
+            }
+        } else {
+            blockPart = stateString;
         }
 
-        int processed = 0;
-        BlockState fillState = fillBlock.defaultBlockState();
-        int currentBlock = 0;
+        ResourceLocation blockId = ResourceLocation.parse(blockPart);
+        Block block = BuiltInRegistries.BLOCK.get(blockId);
+        if (block == null || block == Blocks.AIR) return null;
 
-        if (fillMode == null) {
-            fillMode = FillMode.FILL;
-        }
+        BlockState state = block.defaultBlockState();
 
-        int progressInterval = Math.max(totalBlocks / 10, 100);
+        if (propsPart != null && !propsPart.isEmpty()) {
+            String[] props = propsPart.split(",");
+            for (String prop : props) {
+                String[] kv = prop.split("=", 2);
+                if (kv.length != 2) continue;
+                String propName = kv[0].trim();
+                String propValue = kv[1].trim();
 
-        for (int x = minX; x <= maxX && processed < MAX_FILL_BLOCKS; x++) {
-            for (int y = minY; y <= maxY && processed < MAX_FILL_BLOCKS; y++) {
-                for (int z = minZ; z <= maxZ && processed < MAX_FILL_BLOCKS; z++) {
-                    BlockPos currentPos = new BlockPos(x, y, z);
-                    BlockState currentState = level.getBlockState(currentPos);
-                    currentBlock++;
-
-                    if (currentBlock % progressInterval == 0 || currentBlock >= totalBlocks) {
-                        int progress = Math.min((currentBlock * 100) / totalBlocks, 100);
-                        player.sendSystemMessage(Component.literal("§6填充进度: " + progress + "% (" + processed + "/" + totalBlocks + ")"));
-                    }
-                    
-                    boolean shouldProcess = false;
-                    
-                    switch (fillMode) {
-                        case FILL: // 创建 - 只填充空白区域
-                            shouldProcess = currentState.isAir() || currentState.canBeReplaced();
-                            break;
-                        case REPLACE: // 覆盖 - 替换所有方块
-                            shouldProcess = true;
-                            break;
-                        case REMOVE: // 破坏 - 只破坏指定方块
-                            shouldProcess = currentState.getBlock() == fillBlock;
-                            break;
-                    }
-                    
-                    if (shouldProcess) {
-                        try {
-                            // 生存模式下检查并消耗物品（除了破坏模式）
-                            if (!player.isCreative() && fillMode != FillMode.REMOVE) {
-                                ItemStack requiredItem = new ItemStack(fillBlock.asItem());
-                                if (!player.getInventory().contains(requiredItem)) {
-                                    continue; // 跳过这个方块，继续处理其他的
-                                }
-                                // 消耗物品
-                                for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-                                    ItemStack slotStack = player.getInventory().getItem(i);
-                                    if (slotStack.getItem() == fillBlock.asItem()) {
-                                        slotStack.shrink(1);
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            // 执行操作
-                            if (fillMode == FillMode.REMOVE) {
-                                level.setBlock(currentPos, Blocks.AIR.defaultBlockState(), 3);
-                            } else {
-                                level.setBlock(currentPos, fillState, 3);
-                            }
-                            processed++;
-                        } catch (Exception e) {
-                            // 忽略单个方块的错误，继续处理其他方块
-                            continue;
-                        }
+                for (Property<?> property : state.getProperties()) {
+                    if (property.getName().equals(propName)) {
+                        state = setPropertyValue(state, property, propValue);
+                        break;
                     }
                 }
             }
         }
-        
-        return processed;
+
+        return state;
     }
-    
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static BlockState setPropertyValue(BlockState state, Property property, String value) {
+        Optional opt = property.getValue(value);
+        if (opt.isPresent()) {
+            return state.setValue(property, (Comparable) opt.get());
+        }
+        return state;
+    }
+
+    /**
+     * Extracts the Block from a block state string.
+     */
+    public static Block getBlockFromStateString(String stateString) {
+        if (stateString == null || stateString.isEmpty()) return null;
+        String blockPart = stateString.contains("[") ? stateString.substring(0, stateString.indexOf('[')) : stateString;
+        ResourceLocation blockId = ResourceLocation.parse(blockPart);
+        Block block = BuiltInRegistries.BLOCK.get(blockId);
+        return (block != null && block != Blocks.AIR) ? block : null;
+    }
+
+    public static String getBlockDisplayName(String stateString) {
+        if (stateString == null || stateString.isEmpty()) return "无";
+        BlockState state = parseBlockState(stateString);
+        if (state != null) {
+            return state.getBlock().getName().getString();
+        }
+        Block block = getBlockFromStateString(stateString);
+        return block != null ? block.getName().getString() : stateString;
+    }
+
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        // 更新操作说明
         tooltip.add(Component.literal("§7右键: 选择位置/执行填充"));
         tooltip.add(Component.literal("§7Shift+右键: 打开设置面板"));
         
@@ -288,12 +478,10 @@ public class FillerItem extends Item {
         if (data != null) {
             currentState = FillerState.fromString(data.state());
             
-            // 显示当前状态
             tooltip.add(Component.literal(""));
             tooltip.add(Component.literal("§7当前状态: §e" + currentState.getDisplayName()));
             tooltip.add(Component.literal("§7" + currentState.getDescription()));
             
-            // 保留原有的位置和方块信息显示
             tooltip.add(Component.literal(""));
             data.pos1().ifPresent(pos1 -> {
                 BlockPos p1 = BlockPos.of(pos1);
@@ -303,7 +491,6 @@ public class FillerItem extends Item {
                 BlockPos p2 = BlockPos.of(pos2);
                 tooltip.add(Component.literal("§a位置2: " + p2.getX() + ", " + p2.getY() + ", " + p2.getZ()));
                 
-                // 如果两个位置都设置了，显示区域大小
                 data.pos1().ifPresent(pos1 -> {
                     BlockPos p1 = BlockPos.of(pos1);
                     int volume = Math.abs(p2.getX() - p1.getX() + 1) * 
@@ -312,17 +499,17 @@ public class FillerItem extends Item {
                     tooltip.add(Component.literal("§b区域大小: " + volume + " 个方块"));
                 });
             });
-            data.fillBlock().ifPresent(blockId -> {
-                // 尝试获取方块的友好名称
-                Block block = getBlockFromId(blockId);
-                String displayName = block != null ? block.getName().getString() : blockId;
+            data.fillBlock().ifPresent(blockStateStr -> {
+                String displayName = getBlockDisplayName(blockStateStr);
                 tooltip.add(Component.literal("§b填充方块: " + displayName));
+                if (blockStateStr.contains("[")) {
+                    tooltip.add(Component.literal("§7状态: " + blockStateStr));
+                }
             });
             FillMode fillMode = FillMode.fromString(data.fillMode());
             tooltip.add(Component.literal("§d填充模式: " + fillMode.getDisplayName()));
             tooltip.add(Component.literal("§7" + fillMode.getDescription()));
         } else {
-            // 如果没有数据，显示基本状态
             tooltip.add(Component.literal(""));
             tooltip.add(Component.literal("§7当前状态: §e" + currentState.getDisplayName()));
             tooltip.add(Component.literal("§7" + currentState.getDescription()));

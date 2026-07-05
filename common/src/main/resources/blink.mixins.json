@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.xbodw.blink.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "blink.refmap.json",
+  "mixins": [],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

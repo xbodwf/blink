@@ -4,8 +4,11 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.xbodw.blink.command.BlinkCommand;
 import com.xbodw.blink.gui.FillerMenu;
 import com.xbodw.blink.item.CompressedFireworkItem;
+import com.xbodw.blink.item.CompressedWindChargeItem;
 import com.xbodw.blink.item.FillerDataComponent;
 import com.xbodw.blink.item.FillerItem;
+import com.xbodw.blink.recipe.CompressedFireworkRecipe;
+import com.xbodw.blink.recipe.CompressedFireworkRecipeSerializer;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.Registry;
@@ -17,6 +20,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 
 public class Blink {
     public static final String MOD_ID = "blink";
@@ -31,8 +35,18 @@ public class Blink {
     public static Item COMPRESSED_FIREWORK_7;
     public static Item COMPRESSED_FIREWORK_8;
     public static Item COMPRESSED_FIREWORK_9;
+    public static Item COMPRESSED_WIND_CHARGE_1;
+    public static Item COMPRESSED_WIND_CHARGE_2;
+    public static Item COMPRESSED_WIND_CHARGE_3;
+    public static Item COMPRESSED_WIND_CHARGE_4;
+    public static Item COMPRESSED_WIND_CHARGE_5;
+    public static Item COMPRESSED_WIND_CHARGE_6;
+    public static Item COMPRESSED_WIND_CHARGE_7;
+    public static Item COMPRESSED_WIND_CHARGE_8;
+    public static Item COMPRESSED_WIND_CHARGE_9;
     public static MenuType<FillerMenu> FILLER_MENU_TYPE;
     public static CreativeModeTab BLINK_TAB;
+    public static RecipeSerializer<CompressedFireworkRecipe> COMPRESSED_FIREWORK_RECIPE_SERIALIZER;
 
     public static void fabricRegisterAll() {
         FILLER_ITEM = Registry.register(
@@ -48,6 +62,16 @@ public class Blink {
         COMPRESSED_FIREWORK_7 = Registry.register(BuiltInRegistries.ITEM, id("compressed_firework_7"), new CompressedFireworkItem(new Item.Properties().stacksTo(64), 7));
         COMPRESSED_FIREWORK_8 = Registry.register(BuiltInRegistries.ITEM, id("compressed_firework_8"), new CompressedFireworkItem(new Item.Properties().stacksTo(64), 8));
         COMPRESSED_FIREWORK_9 = Registry.register(BuiltInRegistries.ITEM, id("compressed_firework_9"), new CompressedFireworkItem(new Item.Properties().stacksTo(64), 9));
+
+        COMPRESSED_WIND_CHARGE_1 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_1"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 1));
+        COMPRESSED_WIND_CHARGE_2 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_2"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 2));
+        COMPRESSED_WIND_CHARGE_3 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_3"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 3));
+        COMPRESSED_WIND_CHARGE_4 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_4"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 4));
+        COMPRESSED_WIND_CHARGE_5 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_5"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 5));
+        COMPRESSED_WIND_CHARGE_6 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_6"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 6));
+        COMPRESSED_WIND_CHARGE_7 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_7"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 7));
+        COMPRESSED_WIND_CHARGE_8 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_8"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 8));
+        COMPRESSED_WIND_CHARGE_9 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_9"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 9));
 
         FILLER_MENU_TYPE = Registry.register(
                 BuiltInRegistries.MENU, id("filler_menu"),
@@ -69,10 +93,23 @@ public class Blink {
                             output.accept(Blink.COMPRESSED_FIREWORK_7);
                             output.accept(Blink.COMPRESSED_FIREWORK_8);
                             output.accept(Blink.COMPRESSED_FIREWORK_9);
+                            output.accept(Blink.COMPRESSED_WIND_CHARGE_1);
+                            output.accept(Blink.COMPRESSED_WIND_CHARGE_2);
+                            output.accept(Blink.COMPRESSED_WIND_CHARGE_3);
+                            output.accept(Blink.COMPRESSED_WIND_CHARGE_4);
+                            output.accept(Blink.COMPRESSED_WIND_CHARGE_5);
+                            output.accept(Blink.COMPRESSED_WIND_CHARGE_6);
+                            output.accept(Blink.COMPRESSED_WIND_CHARGE_7);
+                            output.accept(Blink.COMPRESSED_WIND_CHARGE_8);
+                            output.accept(Blink.COMPRESSED_WIND_CHARGE_9);
                         })
                         .build());
 
         Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("filler_data"), FillerDataComponent.FILLER_DATA);
+
+        COMPRESSED_FIREWORK_RECIPE_SERIALIZER = Registry.register(
+            BuiltInRegistries.RECIPE_SERIALIZER, id("compressed_firework"),
+            new CompressedFireworkRecipeSerializer());
     }
 
     public static ResourceLocation id(String path) {

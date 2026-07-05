@@ -3,6 +3,7 @@ package com.xbodw.blink.gui;
 import com.xbodw.blink.Blink;
 import com.xbodw.blink.item.FillerDataComponent;
 import com.xbodw.blink.item.FillMode;
+import com.xbodw.blink.item.FillerItem;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -10,6 +11,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 
 import java.util.Optional;
 
@@ -61,7 +63,7 @@ public class FillerMenu extends AbstractContainerMenu {
             
             if (!blockStack.isEmpty()) {
                 fillerStack.set(FillerDataComponent.FILLER_DATA, new FillerDataComponent.FillerData(
-                    data.pos1(), data.pos2(), Optional.of(blockStack.getItem().getDescriptionId()),
+                    data.pos1(), data.pos2(), Optional.of(FillerItem.getBlockStateString(blockStack)),
                     data.fillMode(), data.state()
                 ));
             } else {
@@ -78,8 +80,10 @@ public class FillerMenu extends AbstractContainerMenu {
         if (fillerStack != null) {
             FillerDataComponent.FillerData data = fillerStack.get(FillerDataComponent.FILLER_DATA);
             if (data != null && data.fillBlock().isPresent()) {
-                // 这里可以根据blockId创建对应的ItemStack并放入槽位
-                // 但为了简化，我们暂时不实现这个功能
+                Block block = FillerItem.getBlockFromStateString(data.fillBlock().get());
+                if (block != null) {
+                    this.container.setItem(0, new ItemStack(block.asItem()));
+                }
             }
         }
     }
@@ -144,6 +148,16 @@ public class FillerMenu extends AbstractContainerMenu {
         return itemStack;
     }
     
+    @Override
+    public void removed(Player player) {
+        super.removed(player);
+        ItemStack slotItem = this.container.getItem(0);
+        if (!slotItem.isEmpty()) {
+            player.getInventory().placeItemBackInInventory(slotItem);
+            this.container.setItem(0, ItemStack.EMPTY);
+        }
+    }
+
     @Override
     public boolean stillValid(Player player) {
         return this.container.stillValid(player);

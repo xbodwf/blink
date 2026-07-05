@@ -5,14 +5,14 @@
   "name": "Blink",
   "description": "A mod that adds a filler tool to quickly fill regions with blocks!",
   "authors": [
-    "xbodw"
+    "xbodwf"
   ],
   "contact": {
-    "homepage": "https://github.com/xbodw/blink",
-    "sources": "https://github.com/xbodw/blink"
+    "homepage": "https://github.com/xbodwf/blink",
+    "sources": "https://github.com/xbodwf/blink"
   },
   "license": "GPL-3.0",
-  "icon": "assets/blink/icon.png",
+  "icon": "icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -22,6 +22,9 @@
       "com.xbodw.blink.BlinkFabricClient"
     ]
   },
+  "mixins": [
+    "blink.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.16.0",
     "fabric": "*",

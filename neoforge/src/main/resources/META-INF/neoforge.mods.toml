@@ -6,7 +6,8 @@ license = "GPL-3.0"
 modId = "blink"
 version = "${version}"
 displayName = "Blink"
-authors = "xbodw"
+authors = "xbodwf"
+logoFile = "icon.png"
 description = '''
 A mod that adds a filler tool to quickly fill regions with blocks!
 '''
@@ -24,3 +25,6 @@ mandatory = true
 versionRange = "[1.21.1,)"
 ordering = "NONE"
 side = "BOTH"
+
+[[mixins]]
+config = "blink.mixins.json"

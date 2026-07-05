@@ -1,6 +1,7 @@
 package com.xbodw.blink;
 
 import com.xbodw.blink.network.FillerModePacket;
+import com.xbodw.blink.network.FillerPickBlockPacket;
 import java.nio.file.Path;
 
 public class BlinkPlatform {
@@ -18,8 +19,13 @@ public class BlinkPlatform {
         impl.sendToServer(packet);
     }
 
+    public static void sendPickBlockToServer(FillerPickBlockPacket packet) {
+        impl.sendPickBlockToServer(packet);
+    }
+
     public interface Impl {
         Path getConfigDirectory();
         void sendToServer(FillerModePacket packet);
+        void sendPickBlockToServer(FillerPickBlockPacket packet);
     }
 }

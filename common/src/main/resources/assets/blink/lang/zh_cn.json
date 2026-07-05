@@ -1,7 +1,5 @@
 {
   "item.blink.filler": "填充器",
-  "item.blink.dimension_key": "维度钥匙",
-  "block.blink.blink_portal": "Blink传送门",
   "item.blink.compressed_firework_1": "1重压缩烟花",
   "item.blink.compressed_firework_2": "2重压缩烟花",
   "item.blink.compressed_firework_3": "3重压缩烟花",
@@ -11,9 +9,14 @@
   "item.blink.compressed_firework_7": "7重压缩烟花",
   "item.blink.compressed_firework_8": "8重压缩烟花",
   "item.blink.compressed_firework_9": "9重压缩烟花",
-  "itemGroup.blink.blink_tab": "Blink",
-  "dimension.blink.blink_dimension": "Blink维度",
-  "tooltip.blink.dimension_key.line1": "§6用于激活Blink传送门的神秘钥匙",
-  "tooltip.blink.dimension_key.line2": "§7将凋零之星扔入2x2水池中",
-  "tooltip.blink.dimension_key.line3": "§7然后将此钥匙扔入激活传送门"
+  "item.blink.compressed_wind_charge_1": "1重压缩风弹",
+  "item.blink.compressed_wind_charge_2": "2重压缩风弹",
+  "item.blink.compressed_wind_charge_3": "3重压缩风弹",
+  "item.blink.compressed_wind_charge_4": "4重压缩风弹",
+  "item.blink.compressed_wind_charge_5": "5重压缩风弹",
+  "item.blink.compressed_wind_charge_6": "6重压缩风弹",
+  "item.blink.compressed_wind_charge_7": "7重压缩风弹",
+  "item.blink.compressed_wind_charge_8": "8重压缩风弹",
+  "item.blink.compressed_wind_charge_9": "9重压缩风弹",
+  "itemGroup.blink.blink_tab": "Blink"
 }
