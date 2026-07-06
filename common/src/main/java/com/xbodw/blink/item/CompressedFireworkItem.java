@@ -7,27 +7,21 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FireworkRocketEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Item.TooltipContext;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.item.component.FireworkExplosion;
-import net.minecraft.world.item.component.Fireworks;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.Fireworks;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.List;
 
 public class CompressedFireworkItem extends Item {
-    private static final int MAX_FIREWORKS = 20;
-    private static final int MAX_EXPLOSION_WAVES = 5;
     private static final int MAX_PARTICLES_PER_CALL = 50;
     private static final double BASE_POWER = 9.0;
 
@@ -78,28 +72,21 @@ public class CompressedFireworkItem extends Item {
                     Math.min(soundVolume * 3.0f, 10.0f), soundPitch * 0.5f);
         }
 
-        int rocketCount = Math.min(compressionLevel * 3, MAX_FIREWORKS);
+        int rocketCount = Math.min(compressionLevel * 3, 20);
         int flightDuration = Math.min(compressionLevel * 2, 30);
 
         for (int i = 0; i < rocketCount; i++) {
             ItemStack fireworkStack = new ItemStack(Items.FIREWORK_ROCKET);
             fireworkStack.set(DataComponents.FIREWORKS, new Fireworks(
                 flightDuration,
-                List.of(new FireworkExplosion(
-                    FireworkExplosion.Shape.BURST,
-                    IntArrayList.of(0xFF4444, 0xFFAA00),
-                    IntArrayList.of(0xFFFFFF),
-                    true,
-                    false
-                ))
+                List.of()
             ));
-            FireworkRocketEntity firework = new FireworkRocketEntity(level, fireworkStack, player);
-
             double range = compressionLevel * 5.0;
             double offsetX = (level.random.nextDouble() - 0.5) * range;
             double offsetY = level.random.nextDouble() * range * 0.5 + 1.0;
             double offsetZ = (level.random.nextDouble() - 0.5) * range;
 
+            FireworkRocketEntity firework = new FireworkRocketEntity(level, fireworkStack, player);
             firework.setPos(player.getX() + offsetX, player.getY() + 1.0, player.getZ() + offsetZ);
 
             double velocity = compressionLevel * 0.5;
@@ -114,11 +101,12 @@ public class CompressedFireworkItem extends Item {
 
         if (level instanceof ServerLevel serverLevel) {
             createParticleEffects(serverLevel, player);
+            createExplosionWave(serverLevel, player);
         }
 
         if (player.isFallFlying()) {
             Vec3 lookAngle = player.getLookAngle();
-            double acceleration = compressionLevel * 2.0;
+            double acceleration = compressionLevel * 10.0;
             player.setDeltaMovement(player.getDeltaMovement().add(
                     lookAngle.x * acceleration,
                     lookAngle.y * acceleration,
@@ -126,43 +114,14 @@ public class CompressedFireworkItem extends Item {
             ));
         }
 
-        if (level instanceof ServerLevel serverLevel) {
-            createExplosion(serverLevel, player);
-        }
-
         if (compressionLevel >= 5) {
             createSpecialEffects(level, player);
         }
     }
 
-    private void createExplosion(ServerLevel level, Player player) {
-        double explosionRange = Math.min(compressionLevel * 10.0, 50.0);
-        float baseDamage = Math.min((float) powerMultiplier, 200.0f);
-        int waves = Math.min(compressionLevel, MAX_EXPLOSION_WAVES);
-
-        for (int wave = 0; wave < waves; wave++) {
-            double waveRange = explosionRange * (wave + 1) / waves;
-
-            AABB damageArea = new AABB(player.blockPosition()).inflate(waveRange);
-            List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, damageArea);
-
-            for (LivingEntity entity : entities) {
-                if (entity != player && entity.distanceTo(player) <= waveRange) {
-                    float waveDamage = baseDamage / (wave + 1);
-                    entity.hurt(level.damageSources().explosion(null, player), waveDamage);
-
-                    double knockbackStrength = compressionLevel * 5.0;
-                    Vec3 knockback = entity.position().subtract(player.position()).normalize().scale(knockbackStrength);
-                    entity.setDeltaMovement(entity.getDeltaMovement().add(knockback));
-                }
-            }
-
-            createExplosionWave(level, player, waveRange, wave);
-        }
-    }
-
-    private void createExplosionWave(ServerLevel level, Player player, double range, int wave) {
+    private void createExplosionWave(ServerLevel level, Player player) {
         int particleCount = Math.min(compressionLevel * 5, MAX_PARTICLES_PER_CALL);
+        double range = Math.min(compressionLevel * 10.0, 50.0);
 
         for (int i = 0; i < particleCount; i++) {
             double angle = (2 * Math.PI * i) / particleCount;
@@ -170,11 +129,7 @@ public class CompressedFireworkItem extends Item {
             double z = player.getZ() + Math.sin(angle) * range;
             double y = player.getY() + level.random.nextDouble() * 10.0;
 
-            if (wave == 0) {
-                level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, x, y, z, 1, 0, 0, 0, 0);
-            } else {
-                level.sendParticles(ParticleTypes.EXPLOSION, x, y, z, 1, 1, 1, 1, 0.1);
-            }
+            level.sendParticles(ParticleTypes.EXPLOSION, x, y, z, 1, 1, 1, 1, 0.1);
         }
     }
 
@@ -208,17 +163,10 @@ public class CompressedFireworkItem extends Item {
             tooltip.add(Component.literal("§d无限使用"));
         }
 
-        double explosionRange = Math.min(compressionLevel * 10.0, 50.0);
-        float baseDamage = Math.min((float) powerMultiplier, 200.0f);
-        double acceleration = compressionLevel * 2.0;
-        int rocketCount = Math.min(compressionLevel * 3, MAX_FIREWORKS);
+        double acceleration = compressionLevel * 10.0;
 
-        tooltip.add(Component.literal("§7右键使用释放毁灭性烟花"));
-        tooltip.add(Component.literal("§7• 爆炸范围: §c" + String.format("%.0f", explosionRange) + "格"));
-        tooltip.add(Component.literal("§7• 最大伤害: §c" + String.format("%.0f", baseDamage)));
-        int flightSec = Math.min(compressionLevel * 2, 30);
-        tooltip.add(Component.literal("§7• 鞘翅加速: §a" + String.format("%.0fx", acceleration) + " (持续" + flightSec + " tick)"));
-        tooltip.add(Component.literal("§7• 烟花数量: §e" + rocketCount + "发"));
+        tooltip.add(Component.literal("§7右键使用释放炫目烟花"));
+        tooltip.add(Component.literal("§7• 鞘翅加速: §a" + String.format("%.0fx", acceleration)));
 
         if (compressionLevel >= 3) {
             tooltip.add(Component.literal("§a达到3重压缩，烟花不再消耗！"));

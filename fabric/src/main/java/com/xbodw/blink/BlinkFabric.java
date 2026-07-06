@@ -73,8 +73,11 @@ public class BlinkFabric implements ModInitializer {
 
                 if (stack.getItem() instanceof CompressedWindChargeItem cwc) {
                     int count = cwc.getCompressionLevel();
+                    double x = (double)pos.getX() + (double)direction.getStepX() * 1.125;
+                    double y = (double)pos.getY() + (double)direction.getStepY() * 1.125;
+                    double z = (double)pos.getZ() + (double)direction.getStepZ() * 1.125;
                     for (int i = 0; i < count; i++) {
-                        WindCharge windCharge = new WindCharge(null, level, pos.getX(), pos.getY(), pos.getZ());
+                        WindCharge windCharge = new WindCharge(null, level, x, y, z);
                         windCharge.setDeltaMovement(
                                 direction.getStepX() * 1.5 + (random.nextDouble() - 0.5) * 0.2,
                                 direction.getStepY() * 1.5 + (random.nextDouble() - 0.5) * 0.2,
@@ -100,6 +103,10 @@ public class BlinkFabric implements ModInitializer {
                 if (stack.getItem() instanceof CompressedFireworkItem cfi) {
                     int rocketCount = Math.min(cfi.getCompressionLevel() * 3, 20);
 
+                    double x = (double)pos.getX() + (double)direction.getStepX() * 1.125;
+                    double y = (double)pos.getY() + (double)direction.getStepY() * 1.125;
+                    double z = (double)pos.getZ() + (double)direction.getStepZ() * 1.125;
+
                     for (int i = 0; i < rocketCount; i++) {
                         ItemStack fireworkStack = new ItemStack(Items.FIREWORK_ROCKET);
                         fireworkStack.set(DataComponents.FIREWORKS, new Fireworks(
@@ -112,11 +119,11 @@ public class BlinkFabric implements ModInitializer {
                                 ))
                         ));
                         FireworkRocketEntity firework = new FireworkRocketEntity(level, fireworkStack,
-                                null, pos.getX(), pos.getY(), pos.getZ(), true);
+                                null, x, y, z, true);
                         firework.setDeltaMovement(
-                                direction.getStepX() * 0.5 + (random.nextDouble() - 0.5) * 0.2,
-                                0.5 + random.nextDouble() * 0.3,
-                                direction.getStepZ() * 0.5 + (random.nextDouble() - 0.5) * 0.2
+                                direction.getStepX() * 0.5 + random.nextGaussian() * 0.1,
+                                direction.getStepY() * 0.5 + random.nextGaussian() * 0.1,
+                                direction.getStepZ() * 0.5 + random.nextGaussian() * 0.1
                         );
                         level.addFreshEntity(firework);
                     }

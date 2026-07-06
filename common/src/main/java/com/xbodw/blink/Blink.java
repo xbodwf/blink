@@ -51,7 +51,7 @@ public class Blink {
     public static void fabricRegisterAll() {
         FILLER_ITEM = Registry.register(
                 BuiltInRegistries.ITEM, id("filler"),
-                new FillerItem(new Item.Properties().stacksTo(1)));
+                new FillerItem(new Item.Properties().stacksTo(1).fireResistant()));
 
         COMPRESSED_FIREWORK_1 = Registry.register(BuiltInRegistries.ITEM, id("compressed_firework_1"), new CompressedFireworkItem(new Item.Properties().stacksTo(64), 1));
         COMPRESSED_FIREWORK_2 = Registry.register(BuiltInRegistries.ITEM, id("compressed_firework_2"), new CompressedFireworkItem(new Item.Properties().stacksTo(64), 2));
@@ -63,15 +63,15 @@ public class Blink {
         COMPRESSED_FIREWORK_8 = Registry.register(BuiltInRegistries.ITEM, id("compressed_firework_8"), new CompressedFireworkItem(new Item.Properties().stacksTo(64), 8));
         COMPRESSED_FIREWORK_9 = Registry.register(BuiltInRegistries.ITEM, id("compressed_firework_9"), new CompressedFireworkItem(new Item.Properties().stacksTo(64), 9));
 
-        COMPRESSED_WIND_CHARGE_1 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_1"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 1));
-        COMPRESSED_WIND_CHARGE_2 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_2"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 2));
-        COMPRESSED_WIND_CHARGE_3 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_3"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 3));
-        COMPRESSED_WIND_CHARGE_4 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_4"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 4));
-        COMPRESSED_WIND_CHARGE_5 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_5"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 5));
-        COMPRESSED_WIND_CHARGE_6 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_6"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 6));
-        COMPRESSED_WIND_CHARGE_7 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_7"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 7));
-        COMPRESSED_WIND_CHARGE_8 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_8"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 8));
-        COMPRESSED_WIND_CHARGE_9 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_9"), new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 9));
+        COMPRESSED_WIND_CHARGE_1 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_1"), new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 1));
+        COMPRESSED_WIND_CHARGE_2 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_2"), new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 2));
+        COMPRESSED_WIND_CHARGE_3 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_3"), new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 3));
+        COMPRESSED_WIND_CHARGE_4 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_4"), new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 4));
+        COMPRESSED_WIND_CHARGE_5 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_5"), new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 5));
+        COMPRESSED_WIND_CHARGE_6 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_6"), new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 6));
+        COMPRESSED_WIND_CHARGE_7 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_7"), new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 7));
+        COMPRESSED_WIND_CHARGE_8 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_8"), new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 8));
+        COMPRESSED_WIND_CHARGE_9 = Registry.register(BuiltInRegistries.ITEM, id("compressed_wind_charge_9"), new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 9));
 
         FILLER_MENU_TYPE = Registry.register(
                 BuiltInRegistries.MENU, id("filler_menu"),

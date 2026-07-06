@@ -4,7 +4,7 @@
   "package": "com.xbodw.blink.mixin",
   "compatibilityLevel": "JAVA_21",
   "refmap": "blink.refmap.json",
-  "mixins": [],
+  "mixins": ["WindChargeDamageMixin"],
   "injectors": {
     "defaultRequire": 0
   }

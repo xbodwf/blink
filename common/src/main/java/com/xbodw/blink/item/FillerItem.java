@@ -174,10 +174,15 @@ public class FillerItem extends Item {
             if (task.resetState && player instanceof ServerPlayer) {
                 ItemStack fillerStack = getHeldFiller(player);
                 if (fillerStack != null) {
-                    fillerStack.set(FillerDataComponent.FILLER_DATA, FillerDataComponent.empty());
+                    FillerDataComponent.FillerData oldData = fillerStack.get(FillerDataComponent.FILLER_DATA);
+                    Optional<String> fillBlock = oldData != null ? oldData.fillBlock() : Optional.empty();
+                    String fillModeStr = oldData != null ? oldData.fillMode() : "FILL";
+                    fillerStack.set(FillerDataComponent.FILLER_DATA, new FillerDataComponent.FillerData(
+                        Optional.empty(), Optional.empty(), fillBlock, fillModeStr, "SELECTING_POS1"
+                    ));
                 }
             }
-            player.sendSystemMessage(Component.literal("§7状态已重置，可以重新选择位置。"));
+            player.sendSystemMessage(Component.literal("§7位置已重置，可以重新选择区域。填充方块和模式保持不变。"));
         }
     }
 

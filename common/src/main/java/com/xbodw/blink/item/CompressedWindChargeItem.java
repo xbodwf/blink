@@ -31,12 +31,12 @@ public class CompressedWindChargeItem extends Item {
 
         if (!level.isClientSide) {
             int count = this.level;
+            Vec3 look = player.getLookAngle();
             for (int i = 0; i < count; i++) {
                 WindCharge windCharge = new WindCharge(player, level, player.getX(), player.getEyeY(), player.getZ());
 
-                Vec3 look = player.getLookAngle();
-                double spread = (level.random.nextDouble() - 0.5) * 0.2 * this.level;
-                double ySpread = (level.random.nextDouble() - 0.5) * 0.2;
+                double spread = (level.random.nextDouble() - 0.5) * 0.05;
+                double ySpread = (level.random.nextDouble() - 0.5) * 0.05;
                 windCharge.setDeltaMovement(
                     look.x * 1.5 + spread,
                     look.y * 1.5 + ySpread,

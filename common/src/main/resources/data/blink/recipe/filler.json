@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "EPE",
+    "NIN",
+    "CPC"
+  ],
+  "key": {
+    "E": { "item": "minecraft:ender_eye" },
+    "P": { "item": "minecraft:shulker_shell" },
+    "N": { "item": "minecraft:netherite_ingot" },
+    "I": { "item": "minecraft:nether_star" },
+    "C": { "item": "minecraft:chorus_flower" }
+  },
+  "result": { "id": "blink:filler", "count": 1 }
+}

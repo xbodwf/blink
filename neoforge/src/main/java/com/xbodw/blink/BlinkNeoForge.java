@@ -56,7 +56,7 @@ public class BlinkNeoForge {
     private static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(Registries.RECIPE_SERIALIZER, Blink.MOD_ID);
 
     private static final DeferredItem<FillerItem> FILLER_ITEM = ITEMS.register("filler",
-            () -> new FillerItem(new Item.Properties().stacksTo(1)));
+            () -> new FillerItem(new Item.Properties().stacksTo(1).fireResistant()));
 
     private static final DeferredItem<CompressedFireworkItem> CF1 = ITEMS.register("compressed_firework_1", () -> new CompressedFireworkItem(new Item.Properties().stacksTo(64), 1));
     private static final DeferredItem<CompressedFireworkItem> CF2 = ITEMS.register("compressed_firework_2", () -> new CompressedFireworkItem(new Item.Properties().stacksTo(64), 2));
@@ -68,15 +68,15 @@ public class BlinkNeoForge {
     private static final DeferredItem<CompressedFireworkItem> CF8 = ITEMS.register("compressed_firework_8", () -> new CompressedFireworkItem(new Item.Properties().stacksTo(64), 8));
     private static final DeferredItem<CompressedFireworkItem> CF9 = ITEMS.register("compressed_firework_9", () -> new CompressedFireworkItem(new Item.Properties().stacksTo(64), 9));
 
-    private static final DeferredItem<CompressedWindChargeItem> CWC1 = ITEMS.register("compressed_wind_charge_1", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 1));
-    private static final DeferredItem<CompressedWindChargeItem> CWC2 = ITEMS.register("compressed_wind_charge_2", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 2));
-    private static final DeferredItem<CompressedWindChargeItem> CWC3 = ITEMS.register("compressed_wind_charge_3", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 3));
-    private static final DeferredItem<CompressedWindChargeItem> CWC4 = ITEMS.register("compressed_wind_charge_4", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 4));
-    private static final DeferredItem<CompressedWindChargeItem> CWC5 = ITEMS.register("compressed_wind_charge_5", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 5));
-    private static final DeferredItem<CompressedWindChargeItem> CWC6 = ITEMS.register("compressed_wind_charge_6", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 6));
-    private static final DeferredItem<CompressedWindChargeItem> CWC7 = ITEMS.register("compressed_wind_charge_7", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 7));
-    private static final DeferredItem<CompressedWindChargeItem> CWC8 = ITEMS.register("compressed_wind_charge_8", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 8));
-    private static final DeferredItem<CompressedWindChargeItem> CWC9 = ITEMS.register("compressed_wind_charge_9", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(16), 9));
+    private static final DeferredItem<CompressedWindChargeItem> CWC1 = ITEMS.register("compressed_wind_charge_1", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 1));
+    private static final DeferredItem<CompressedWindChargeItem> CWC2 = ITEMS.register("compressed_wind_charge_2", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 2));
+    private static final DeferredItem<CompressedWindChargeItem> CWC3 = ITEMS.register("compressed_wind_charge_3", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 3));
+    private static final DeferredItem<CompressedWindChargeItem> CWC4 = ITEMS.register("compressed_wind_charge_4", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 4));
+    private static final DeferredItem<CompressedWindChargeItem> CWC5 = ITEMS.register("compressed_wind_charge_5", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 5));
+    private static final DeferredItem<CompressedWindChargeItem> CWC6 = ITEMS.register("compressed_wind_charge_6", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 6));
+    private static final DeferredItem<CompressedWindChargeItem> CWC7 = ITEMS.register("compressed_wind_charge_7", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 7));
+    private static final DeferredItem<CompressedWindChargeItem> CWC8 = ITEMS.register("compressed_wind_charge_8", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 8));
+    private static final DeferredItem<CompressedWindChargeItem> CWC9 = ITEMS.register("compressed_wind_charge_9", () -> new CompressedWindChargeItem(new Item.Properties().stacksTo(64), 9));
 
     private static final DeferredHolder<MenuType<?>, MenuType<FillerMenu>> FILLER_MENU_TYPE = MENUS.register("filler_menu",
             () -> new MenuType<>(FillerMenu::new, FeatureFlags.VANILLA_SET));
@@ -177,8 +177,11 @@ public class BlinkNeoForge {
 
                 if (stack.getItem() instanceof CompressedWindChargeItem cwc) {
                     int count = cwc.getCompressionLevel();
+                    double x = (double)pos.getX() + (double)direction.getStepX() * 1.125;
+                    double y = (double)pos.getY() + (double)direction.getStepY() * 1.125;
+                    double z = (double)pos.getZ() + (double)direction.getStepZ() * 1.125;
                     for (int i = 0; i < count; i++) {
-                        WindCharge windCharge = new WindCharge(null, level, pos.getX(), pos.getY(), pos.getZ());
+                        WindCharge windCharge = new WindCharge(null, level, x, y, z);
                         windCharge.setDeltaMovement(
                                 direction.getStepX() * 1.5 + (random.nextDouble() - 0.5) * 0.2,
                                 direction.getStepY() * 1.5 + (random.nextDouble() - 0.5) * 0.2,
@@ -204,6 +207,10 @@ public class BlinkNeoForge {
                 if (stack.getItem() instanceof CompressedFireworkItem cfi) {
                     int rocketCount = Math.min(cfi.getCompressionLevel() * 3, 20);
 
+                    double x = (double)pos.getX() + (double)direction.getStepX() * 1.125;
+                    double y = (double)pos.getY() + (double)direction.getStepY() * 1.125;
+                    double z = (double)pos.getZ() + (double)direction.getStepZ() * 1.125;
+
                     for (int i = 0; i < rocketCount; i++) {
                         ItemStack fireworkStack = new ItemStack(Items.FIREWORK_ROCKET);
                         fireworkStack.set(net.minecraft.core.component.DataComponents.FIREWORKS, new Fireworks(
@@ -216,11 +223,11 @@ public class BlinkNeoForge {
                                 ))
                         ));
                         FireworkRocketEntity firework = new FireworkRocketEntity(level, fireworkStack,
-                                null, pos.getX(), pos.getY(), pos.getZ(), true);
+                                null, x, y, z, true);
                         firework.setDeltaMovement(
-                                direction.getStepX() * 0.5 + (random.nextDouble() - 0.5) * 0.2,
-                                0.5 + random.nextDouble() * 0.3,
-                                direction.getStepZ() * 0.5 + (random.nextDouble() - 0.5) * 0.2
+                                direction.getStepX() * 0.5 + random.nextGaussian() * 0.1,
+                                direction.getStepY() * 0.5 + random.nextGaussian() * 0.1,
+                                direction.getStepZ() * 0.5 + random.nextGaussian() * 0.1
                         );
                         level.addFreshEntity(firework);
                     }
